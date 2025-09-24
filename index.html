@@ -9,6 +9,7 @@
         .card {
             perspective: 1000px;
             cursor: pointer;
+            touch-action: manipulation;
         }
         .card-inner {
             position: relative;
@@ -26,11 +27,11 @@
             width: 100%;
             height: 100%;
             backface-visibility: hidden;
-            border-radius: 12px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 8px;
         }
         .card-back {
             transform: rotateY(180deg);
@@ -46,22 +47,68 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
+        .player-turn-active {
+            animation: glow 2s ease-in-out infinite alternate;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+            to { box-shadow: 0 0 30px rgba(255, 215, 0, 0.9), 0 0 40px rgba(255, 215, 0, 0.4); }
+        }
+        .game-disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        /* Responsive card heights */
+        @media (max-width: 640px) {
+            .card {
+                height: 80px;
+            }
+            .card-front, .card-back {
+                padding: 4px;
+                border-radius: 6px;
+            }
+        }
+        
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .card {
+                height: 100px;
+            }
+            .card-front, .card-back {
+                padding: 6px;
+            }
+        }
+        
+        @media (min-width: 1025px) {
+            .card {
+                height: 120px;
+            }
+        }
+        
+        /* Touch-friendly buttons */
+        @media (max-width: 768px) {
+            button {
+                min-height: 44px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-800 min-h-screen p-4">
     <div class="max-w-6xl mx-auto">
         <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white mb-2">🎬 Memory Card</h1>
-            <h2 class="text-2xl text-blue-200 mb-4">Peralatan Audio Visual</h2>
+        <div class="text-center mb-4 md:mb-8">
+            <h1 class="text-2xl md:text-4xl font-bold text-white mb-2">🎬 Memory Card</h1>
+            <h2 class="text-lg md:text-2xl text-blue-200 mb-4">Peralatan Audio Visual</h2>
             
             <!-- Game Mode Selection -->
             <div id="modeSelection" class="mb-6">
-                <div class="flex justify-center gap-4 mb-4">
-                    <button id="singlePlayerBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                <div class="flex justify-center gap-2 md:gap-4 mb-4">
+                    <button id="singlePlayerBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 md:py-2 md:px-4 rounded-lg transition-colors text-sm md:text-base">
                         👤 Solo
                     </button>
-                    <button id="multiPlayerBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    <button id="multiPlayerBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 md:py-2 md:px-4 rounded-lg transition-colors text-sm md:text-base">
                         👥 Kelompok
                     </button>
                 </div>
@@ -86,9 +133,17 @@
             <!-- Game Stats -->
             <div id="gameStats" class="hidden">
                 <!-- Current Player Turn -->
-                <div id="currentPlayerTurn" class="mb-4 bg-white/20 rounded-lg p-3 max-w-md mx-auto">
-                    <div class="text-lg font-bold text-yellow-300">Giliran:</div>
-                    <div id="currentPlayerName" class="text-xl font-bold text-white"></div>
+                <div id="currentPlayerTurn" class="mb-4 bg-white/20 rounded-lg p-4 max-w-md mx-auto">
+                    <div class="text-lg font-bold text-yellow-300 mb-2">Giliran:</div>
+                    <div id="currentPlayerName" class="text-xl font-bold text-white mb-3"></div>
+                    <button id="activateTurnBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg w-full transition-colors">
+                        🎮 Aktifkan Giliran Saya
+                    </button>
+                    <div id="turnActiveIndicator" class="hidden mt-2 text-center">
+                        <div class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold inline-block">
+                            ✅ Giliran Anda Aktif!
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Player Message -->
@@ -96,14 +151,14 @@
                 </div>
                 
                 <!-- Game Info -->
-                <div class="flex justify-center gap-8 text-white mb-4">
-                    <div class="bg-white/20 px-4 py-2 rounded-lg">
-                        <span class="text-sm">Waktu: </span>
-                        <span id="timer" class="font-bold">00:00</span>
+                <div class="flex justify-center gap-2 md:gap-8 text-white mb-4">
+                    <div class="bg-white/20 px-3 md:px-4 py-2 rounded-lg">
+                        <span class="text-xs md:text-sm">Waktu: </span>
+                        <span id="timer" class="font-bold text-sm md:text-base">00:00</span>
                     </div>
-                    <div class="bg-white/20 px-4 py-2 rounded-lg">
-                        <span class="text-sm">Pasangan: </span>
-                        <span id="matches" class="font-bold">0/16</span>
+                    <div class="bg-white/20 px-3 md:px-4 py-2 rounded-lg">
+                        <span class="text-xs md:text-sm">Pasangan: </span>
+                        <span id="matches" class="font-bold text-sm md:text-base">0/16</span>
                     </div>
                 </div>
                 
@@ -113,18 +168,20 @@
         </div>
 
         <!-- Game Board -->
-        <div id="gameBoard" class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mb-8">
+        <div id="gameBoard" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 md:gap-3 mb-4 md:mb-8 px-2 md:px-0">
             <!-- Cards will be generated here -->
         </div>
 
         <!-- Control Buttons -->
-        <div class="text-center">
-            <button id="restartBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4">
-                🔄 Main Lagi
-            </button>
-            <button id="hintBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
-                💡 Petunjuk
-            </button>
+        <div class="text-center px-4">
+            <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                <button id="restartBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors text-sm md:text-base">
+                    🔄 Main Lagi
+                </button>
+                <button id="hintBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-colors text-sm md:text-base">
+                    💡 Petunjuk
+                </button>
+            </div>
         </div>
 
         <!-- Win Modal -->
@@ -161,8 +218,8 @@
                 id: 1, 
                 type: 'image', 
                 content: `<div class="text-center">
-                    <div class="text-4xl mb-2">🎙️</div>
-                    <div class="text-sm font-bold">Kondenser</div>
+                    <div class="text-2xl md:text-4xl mb-1 md:mb-2">🎙️</div>
+                    <div class="text-xs md:text-sm font-bold">Kondenser</div>
                 </div>`, 
                 match: 2, 
                 category: 'audio' 
@@ -463,12 +520,12 @@
             card.dataset.match = cardInfo.match;
             
             const cardTypeClass = cardInfo.type === 'image' ? 'bg-blue-500' : 'bg-green-500';
-            const textSize = cardInfo.type === 'image' ? 'text-lg font-bold' : 'text-sm';
+            const textSize = cardInfo.type === 'image' ? 'text-sm md:text-lg font-bold' : 'text-xs md:text-sm';
             
             card.innerHTML = `
                 <div class="card-inner h-full">
                     <div class="card-front bg-gradient-to-br from-gray-700 to-gray-900 text-white">
-                        <div class="text-4xl">❓</div>
+                        <div class="text-2xl md:text-4xl">❓</div>
                     </div>
                     <div class="card-back ${cardTypeClass} text-white">
                         <div class="${textSize} text-center leading-tight flex items-center justify-center h-full">
@@ -488,6 +545,12 @@
                 startGame();
             }
             
+            // Check if it's multiplayer mode and turn is not active
+            if (gameState.gameMode === 'multi' && !gameState.playerTurnActive) {
+                showPlayerMessage(`⚠️ Klik "Aktifkan Giliran Saya" terlebih dahulu!`);
+                return;
+            }
+            
             if (gameState.flippedCards.length >= 2 || 
                 card.classList.contains('flipped') || 
                 card.classList.contains('matched')) {
@@ -503,6 +566,10 @@
             if (gameState.flippedCards.length === 2) {
                 if (gameState.gameMode === 'single') {
                     gameState.moves++;
+                }
+                // Disable turn after 2 cards are flipped
+                if (gameState.gameMode === 'multi') {
+                    deactivateTurn();
                 }
                 checkMatch();
             }
@@ -573,11 +640,35 @@
             document.getElementById('timer').textContent = `${minutes}:${seconds}`;
         }
 
+        // Turn control functions
+        function activateTurn() {
+            if (gameState.gameMode === 'multi') {
+                gameState.playerTurnActive = true;
+                document.getElementById('activateTurnBtn').classList.add('hidden');
+                document.getElementById('turnActiveIndicator').classList.remove('hidden');
+                document.getElementById('currentPlayerTurn').classList.add('player-turn-active');
+                document.getElementById('gameBoard').classList.remove('game-disabled');
+                updateCurrentPlayer(); // Update name to show "SEDANG MAIN"
+            }
+        }
+        
+        function deactivateTurn() {
+            if (gameState.gameMode === 'multi') {
+                gameState.playerTurnActive = false;
+                document.getElementById('activateTurnBtn').classList.remove('hidden');
+                document.getElementById('turnActiveIndicator').classList.add('hidden');
+                document.getElementById('currentPlayerTurn').classList.remove('player-turn-active');
+                document.getElementById('gameBoard').classList.add('game-disabled');
+                updateCurrentPlayer(); // Update name to remove "SEDANG MAIN"
+            }
+        }
+
         // Multiplayer functions
         function nextPlayer() {
             if (gameState.gameMode === 'multi') {
                 gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
                 updateCurrentPlayer();
+                deactivateTurn(); // Reset turn activation for next player
             }
         }
         
@@ -593,8 +684,11 @@
         
         function updateCurrentPlayer() {
             if (gameState.gameMode === 'multi') {
-                document.getElementById('currentPlayerName').textContent = 
-                    gameState.players[gameState.currentPlayerIndex].name;
+                const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+                const displayName = gameState.playerTurnActive ? 
+                    `${currentPlayer.name} - SEDANG MAIN` : 
+                    currentPlayer.name;
+                document.getElementById('currentPlayerName').textContent = displayName;
             }
         }
         
@@ -753,6 +847,8 @@
         function startMultiplayerGame() {
             if (gameState.players.length >= 2) {
                 initGame('multi');
+                // Initially disable the game board until player activates turn
+                deactivateTurn();
             }
         }
 
@@ -771,6 +867,7 @@
         document.getElementById('multiPlayerBtn').addEventListener('click', setupMultiplayer);
         document.getElementById('addPlayerBtn').addEventListener('click', addPlayer);
         document.getElementById('startGameBtn').addEventListener('click', startMultiplayerGame);
+        document.getElementById('activateTurnBtn').addEventListener('click', activateTurn);
         document.getElementById('restartBtn').addEventListener('click', () => initGame());
         document.getElementById('playAgainBtn').addEventListener('click', () => initGame());
         document.getElementById('hintBtn').addEventListener('click', showHint);
@@ -785,5 +882,5 @@
         // Initialize game on load
         initGame();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'983eb0b6655efdb2',t:'MTc1ODY3OTI0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'983fa028c467fd32',t:'MTc1ODY4OTA1Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
