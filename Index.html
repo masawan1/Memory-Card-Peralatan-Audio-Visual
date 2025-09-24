@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Card - Peralatan Audio Visual</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card {
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+        .matched {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-800 min-h-screen p-4">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">🎬 Memory Card</h1>
+            <h2 class="text-2xl text-blue-200 mb-4">Peralatan Audio Visual</h2>
+            
+            <!-- Game Mode Selection -->
+            <div id="modeSelection" class="mb-6">
+                <div class="flex justify-center gap-4 mb-4">
+                    <button id="singlePlayerBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        👤 Solo
+                    </button>
+                    <button id="multiPlayerBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        👥 Kelompok
+                    </button>
+                </div>
+                
+                <!-- Player Setup -->
+                <div id="playerSetup" class="hidden bg-white/10 rounded-lg p-4 max-w-md mx-auto">
+                    <h3 class="text-white font-bold mb-3">Setup Pemain</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="playerNameInput" placeholder="Nama pemain..." 
+                               class="flex-1 px-3 py-2 rounded text-gray-800">
+                        <button id="addPlayerBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                            Tambah
+                        </button>
+                    </div>
+                    <div id="playerList" class="mb-3 text-white text-sm"></div>
+                    <button id="startGameBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded w-full hidden">
+                        🎮 Mulai Game
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Stats -->
+            <div id="gameStats" class="hidden">
+                <!-- Current Player Turn -->
+                <div id="currentPlayerTurn" class="mb-4 bg-white/20 rounded-lg p-3 max-w-md mx-auto">
+                    <div class="text-lg font-bold text-yellow-300">Giliran:</div>
+                    <div id="currentPlayerName" class="text-xl font-bold text-white"></div>
+                </div>
+                
+                <!-- Player Message -->
+                <div id="playerMessage" class="mb-4 bg-yellow-500/90 rounded-lg p-3 max-w-md mx-auto text-center font-bold text-white hidden">
+                </div>
+                
+                <!-- Game Info -->
+                <div class="flex justify-center gap-8 text-white mb-4">
+                    <div class="bg-white/20 px-4 py-2 rounded-lg">
+                        <span class="text-sm">Waktu: </span>
+                        <span id="timer" class="font-bold">00:00</span>
+                    </div>
+                    <div class="bg-white/20 px-4 py-2 rounded-lg">
+                        <span class="text-sm">Pasangan: </span>
+                        <span id="matches" class="font-bold">0/16</span>
+                    </div>
+                </div>
+                
+                <!-- Player Scores -->
+                <div id="playerScores" class="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-2xl mx-auto"></div>
+            </div>
+        </div>
+
+        <!-- Game Board -->
+        <div id="gameBoard" class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mb-8">
+            <!-- Cards will be generated here -->
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="text-center">
+            <button id="restartBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4">
+                🔄 Main Lagi
+            </button>
+            <button id="hintBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                💡 Petunjuk
+            </button>
+        </div>
+
+        <!-- Win Modal -->
+        <div id="winModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+            <div class="bg-white rounded-xl p-8 text-center max-w-lg mx-4">
+                <div class="text-6xl mb-4">🎉</div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">Game Selesai!</h3>
+                <p class="text-gray-600 mb-4" id="winMessage">Semua peralatan audio visual berhasil dicocokkan!</p>
+                
+                <!-- Final Results -->
+                <div class="bg-gray-100 rounded-lg p-4 mb-4">
+                    <div id="soloStats" class="hidden">
+                        <p class="text-sm text-gray-600">Statistik:</p>
+                        <p class="font-bold" id="finalStats"></p>
+                    </div>
+                    
+                    <div id="multiStats" class="hidden">
+                        <p class="text-sm text-gray-600 mb-3">🏆 Hasil Akhir:</p>
+                        <div id="finalRanking" class="space-y-2"></div>
+                    </div>
+                </div>
+                
+                <button id="playAgainBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg">
+                    Main Lagi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game data with emoji representations
+        const cardData = [
+            { 
+                id: 1, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🎙️</div>
+                    <div class="text-sm font-bold">Kondenser</div>
+                </div>`, 
+                match: 2, 
+                category: 'audio' 
+            },
+            { 
+                id: 2, 
+                type: 'desc', 
+                content: 'Sensitif dan detail, ideal untuk rekaman vokal dan instrumen di studio yang terkontrol', 
+                match: 1, 
+                category: 'audio' 
+            },
+            { 
+                id: 3, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🎤</div>
+                    <div class="text-sm font-bold">Dinamik</div>
+                </div>`, 
+                match: 4, 
+                category: 'audio' 
+            },
+            { 
+                id: 4, 
+                type: 'desc', 
+                content: 'Tahan banting dan serbaguna, cocok untuk suara keras seperti drum atau wawancara di lapangan', 
+                match: 3, 
+                category: 'audio' 
+            },
+            { 
+                id: 5, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🎯</div>
+                    <div class="text-sm font-bold">Shotgun</div>
+                </div>`, 
+                match: 6, 
+                category: 'audio' 
+            },
+            { 
+                id: 6, 
+                type: 'desc', 
+                content: 'Sangat fokus (direksional), berfungsi untuk menangkap dialog dari jarak jauh dalam produksi film', 
+                match: 5, 
+                category: 'audio' 
+            },
+            { 
+                id: 7, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">📎</div>
+                    <div class="text-sm font-bold">Lavaliere</div>
+                </div>`, 
+                match: 8, 
+                category: 'audio' 
+            },
+            { 
+                id: 8, 
+                type: 'desc', 
+                content: 'Kecil dan praktis, dijepit pada pakaian untuk wawancara atau presentasi agar tidak terlihat', 
+                match: 7, 
+                category: 'audio' 
+            },
+            { 
+                id: 9, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🎧</div>
+                    <div class="text-sm font-bold">Headphone</div>
+                </div>`, 
+                match: 10, 
+                category: 'audio' 
+            },
+            { 
+                id: 10, 
+                type: 'desc', 
+                content: 'Untuk monitoring audio saat recording atau mixing, membantu mendengar detail suara dengan jelas', 
+                match: 9, 
+                category: 'audio' 
+            },
+            { 
+                id: 11, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🔊</div>
+                    <div class="text-sm font-bold">Speaker</div>
+                </div>`, 
+                match: 12, 
+                category: 'audio' 
+            },
+            { 
+                id: 12, 
+                type: 'desc', 
+                content: 'Monitor aktif untuk playback audio, penting untuk mixing dan mastering di studio', 
+                match: 11, 
+                category: 'audio' 
+            },
+            { 
+                id: 13, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🎛️</div>
+                    <div class="text-sm font-bold">Mixer</div>
+                </div>`, 
+                match: 14, 
+                category: 'audio' 
+            },
+            { 
+                id: 14, 
+                type: 'desc', 
+                content: 'Mengatur dan mencampur berbagai sumber audio, mengontrol volume dan efek suara', 
+                match: 13, 
+                category: 'audio' 
+            },
+            { 
+                id: 15, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">📹</div>
+                    <div class="text-sm font-bold">Kamera</div>
+                </div>`, 
+                match: 16, 
+                category: 'video' 
+            },
+            { 
+                id: 16, 
+                type: 'desc', 
+                content: 'Alat utama perekam gambar. Jenisnya beragam, dari DSLR/Mirrorless hingga kamera sinema profesional', 
+                match: 15, 
+                category: 'video' 
+            },
+            { 
+                id: 17, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🔍</div>
+                    <div class="text-sm font-bold">Lensa</div>
+                </div>`, 
+                match: 18, 
+                category: 'video' 
+            },
+            { 
+                id: 18, 
+                type: 'desc', 
+                content: 'Menentukan sudut pandang dan kualitas gambar. Ada lensa wide, tele, dan prime', 
+                match: 17, 
+                category: 'video' 
+            },
+            { 
+                id: 19, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🦵</div>
+                    <div class="text-sm font-bold">Tripod</div>
+                </div>`, 
+                match: 20, 
+                category: 'video' 
+            },
+            { 
+                id: 20, 
+                type: 'desc', 
+                content: 'Peralatan penting untuk menjaga gambar tetap stabil dan bebas guncangan', 
+                match: 19, 
+                category: 'video' 
+            },
+            { 
+                id: 21, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">💡</div>
+                    <div class="text-sm font-bold">Lighting</div>
+                </div>`, 
+                match: 22, 
+                category: 'video' 
+            },
+            { 
+                id: 22, 
+                type: 'desc', 
+                content: 'Mengontrol pencahayaan untuk menciptakan mood dan memastikan subjek terlihat jelas', 
+                match: 21, 
+                category: 'video' 
+            },
+            { 
+                id: 23, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🎬</div>
+                    <div class="text-sm font-bold">Clapperboard</div>
+                </div>`, 
+                match: 24, 
+                category: 'video' 
+            },
+            { 
+                id: 24, 
+                type: 'desc', 
+                content: 'Papan petik untuk sinkronisasi audio-video dan menandai scene dalam produksi film', 
+                match: 23, 
+                category: 'video' 
+            },
+            { 
+                id: 25, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">📺</div>
+                    <div class="text-sm font-bold">Monitor</div>
+                </div>`, 
+                match: 26, 
+                category: 'video' 
+            },
+            { 
+                id: 26, 
+                type: 'desc', 
+                content: 'Layar eksternal untuk melihat hasil rekaman secara real-time dengan detail yang akurat', 
+                match: 25, 
+                category: 'video' 
+            },
+            { 
+                id: 27, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🔋</div>
+                    <div class="text-sm font-bold">Battery Pack</div>
+                </div>`, 
+                match: 28, 
+                category: 'power' 
+            },
+            { 
+                id: 28, 
+                type: 'desc', 
+                content: 'Sumber daya portabel untuk peralatan audio visual, penting untuk shooting di lokasi', 
+                match: 27, 
+                category: 'power' 
+            },
+            { 
+                id: 29, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">💾</div>
+                    <div class="text-sm font-bold">Memory Card</div>
+                </div>`, 
+                match: 30, 
+                category: 'storage' 
+            },
+            { 
+                id: 30, 
+                type: 'desc', 
+                content: 'Media penyimpanan untuk file video dan audio, kapasitas besar dengan kecepatan tinggi', 
+                match: 29, 
+                category: 'storage' 
+            },
+            { 
+                id: 31, 
+                type: 'image', 
+                content: `<div class="text-center">
+                    <div class="text-4xl mb-2">🎚️</div>
+                    <div class="text-sm font-bold">Audio Interface</div>
+                </div>`, 
+                match: 32, 
+                category: 'audio' 
+            },
+            { 
+                id: 32, 
+                type: 'desc', 
+                content: 'Konverter analog ke digital untuk recording audio berkualitas tinggi ke komputer', 
+                match: 31, 
+                category: 'audio' 
+            }
+        ];
+
+        // Game state
+        let gameState = {
+            flippedCards: [],
+            matchedPairs: 0,
+            moves: 0,
+            startTime: null,
+            timerInterval: null,
+            gameStarted: false,
+            gameMode: 'single', // 'single' or 'multi'
+            players: [],
+            currentPlayerIndex: 0,
+            playerTurnActive: false
+        };
+
+        // Shuffle array function
+        function shuffle(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Create card element
+        function createCard(cardInfo) {
+            const card = document.createElement('div');
+            card.className = 'card h-32';
+            card.dataset.id = cardInfo.id;
+            card.dataset.match = cardInfo.match;
+            
+            const cardTypeClass = cardInfo.type === 'image' ? 'bg-blue-500' : 'bg-green-500';
+            const textSize = cardInfo.type === 'image' ? 'text-lg font-bold' : 'text-sm';
+            
+            card.innerHTML = `
+                <div class="card-inner h-full">
+                    <div class="card-front bg-gradient-to-br from-gray-700 to-gray-900 text-white">
+                        <div class="text-4xl">❓</div>
+                    </div>
+                    <div class="card-back ${cardTypeClass} text-white">
+                        <div class="${textSize} text-center leading-tight flex items-center justify-center h-full">
+                            ${cardInfo.type === 'image' ? cardInfo.content : `<div class="px-2">${cardInfo.content}</div>`}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            card.addEventListener('click', () => handleCardClick(card));
+            return card;
+        }
+
+        // Handle card click
+        function handleCardClick(card) {
+            if (!gameState.gameStarted) {
+                startGame();
+            }
+            
+            if (gameState.flippedCards.length >= 2 || 
+                card.classList.contains('flipped') || 
+                card.classList.contains('matched')) {
+                return;
+            }
+            
+            card.classList.add('flipped');
+            card.classList.add('pulse');
+            gameState.flippedCards.push(card);
+            
+            setTimeout(() => card.classList.remove('pulse'), 500);
+            
+            if (gameState.flippedCards.length === 2) {
+                if (gameState.gameMode === 'single') {
+                    gameState.moves++;
+                }
+                checkMatch();
+            }
+        }
+
+        // Check if cards match
+        function checkMatch() {
+            const [card1, card2] = gameState.flippedCards;
+            const id1 = parseInt(card1.dataset.id);
+            const id2 = parseInt(card2.dataset.id);
+            const match1 = parseInt(card1.dataset.match);
+            const match2 = parseInt(card2.dataset.match);
+            
+            setTimeout(() => {
+                if (id1 === match2 && id2 === match1) {
+                    // Match found
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    gameState.matchedPairs++;
+                    document.getElementById('matches').textContent = `${gameState.matchedPairs}/16`;
+                    
+                    if (gameState.gameMode === 'multi') {
+                        // Award 10 points to current player
+                        gameState.players[gameState.currentPlayerIndex].score += 10;
+                        updatePlayerScores();
+                        
+                        // Show success message
+                        showPlayerMessage(`🎉 ${gameState.players[gameState.currentPlayerIndex].name} dapat 10 poin!`);
+                        
+                        // Always switch to next player after any turn (match or no match)
+                        setTimeout(() => {
+                            nextPlayer();
+                        }, 1500);
+                    }
+                    
+                    if (gameState.matchedPairs === 16) {
+                        endGame();
+                    }
+                } else {
+                    // No match
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    
+                    if (gameState.gameMode === 'multi') {
+                        showPlayerMessage(`😔 Tidak cocok! Giliran selanjutnya...`);
+                        setTimeout(() => {
+                            nextPlayer();
+                        }, 1500);
+                    }
+                }
+                
+                gameState.flippedCards = [];
+            }, 1000);
+        }
+
+        // Start game timer
+        function startGame() {
+            gameState.gameStarted = true;
+            gameState.startTime = Date.now();
+            gameState.timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // Update timer display
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+
+        // Multiplayer functions
+        function nextPlayer() {
+            if (gameState.gameMode === 'multi') {
+                gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+                updateCurrentPlayer();
+            }
+        }
+        
+        function showPlayerMessage(message) {
+            const messageEl = document.getElementById('playerMessage');
+            messageEl.textContent = message;
+            messageEl.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageEl.classList.add('hidden');
+            }, 2000);
+        }
+        
+        function updateCurrentPlayer() {
+            if (gameState.gameMode === 'multi') {
+                document.getElementById('currentPlayerName').textContent = 
+                    gameState.players[gameState.currentPlayerIndex].name;
+            }
+        }
+        
+        function updatePlayerScores() {
+            const scoresContainer = document.getElementById('playerScores');
+            scoresContainer.innerHTML = '';
+            
+            gameState.players.forEach((player, index) => {
+                const isCurrentPlayer = index === gameState.currentPlayerIndex;
+                const playerCard = document.createElement('div');
+                playerCard.className = `bg-white/20 rounded-lg p-3 text-white text-center ${
+                    isCurrentPlayer ? 'ring-2 ring-yellow-400' : ''
+                }`;
+                playerCard.innerHTML = `
+                    <div class="font-bold text-sm">${player.name}</div>
+                    <div class="text-2xl font-bold">${player.score}</div>
+                    <div class="text-xs opacity-75">poin</div>
+                `;
+                scoresContainer.appendChild(playerCard);
+            });
+        }
+        
+        function setupMultiplayer() {
+            document.getElementById('playerSetup').classList.remove('hidden');
+        }
+        
+        function addPlayer() {
+            const nameInput = document.getElementById('playerNameInput');
+            const name = nameInput.value.trim();
+            
+            if (name && gameState.players.length < 6) {
+                gameState.players.push({ name, score: 0 });
+                nameInput.value = '';
+                updatePlayerList();
+                
+                if (gameState.players.length >= 2) {
+                    document.getElementById('startGameBtn').classList.remove('hidden');
+                }
+            }
+        }
+        
+        function updatePlayerList() {
+            const listContainer = document.getElementById('playerList');
+            listContainer.innerHTML = gameState.players.map((player, index) => 
+                `<div class="flex justify-between items-center bg-white/10 rounded px-2 py-1 mb-1">
+                    <span>${player.name}</span>
+                    <button onclick="removePlayer(${index})" class="text-red-300 hover:text-red-100">✕</button>
+                </div>`
+            ).join('');
+        }
+        
+        function removePlayer(index) {
+            gameState.players.splice(index, 1);
+            updatePlayerList();
+            
+            if (gameState.players.length < 2) {
+                document.getElementById('startGameBtn').classList.add('hidden');
+            }
+        }
+
+        // End game
+        function endGame() {
+            clearInterval(gameState.timerInterval);
+            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            
+            if (gameState.gameMode === 'single') {
+                document.getElementById('soloStats').classList.remove('hidden');
+                document.getElementById('multiStats').classList.add('hidden');
+                document.getElementById('finalStats').innerHTML = `
+                    Waktu: ${minutes}m ${seconds}s<br>
+                    Langkah: ${gameState.moves}
+                `;
+            } else {
+                document.getElementById('soloStats').classList.add('hidden');
+                document.getElementById('multiStats').classList.remove('hidden');
+                
+                // Sort players by score
+                const sortedPlayers = [...gameState.players].sort((a, b) => b.score - a.score);
+                const rankingHTML = sortedPlayers.map((player, index) => {
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                    return `
+                        <div class="flex justify-between items-center bg-white/10 rounded px-3 py-2">
+                            <span>${medal} ${player.name}</span>
+                            <span class="font-bold">${player.score} poin</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('finalRanking').innerHTML = rankingHTML;
+                document.getElementById('winMessage').textContent = 
+                    `🎉 ${sortedPlayers[0].name} menjadi juara dengan ${sortedPlayers[0].score} poin!`;
+            }
+            
+            setTimeout(() => {
+                document.getElementById('winModal').classList.remove('hidden');
+            }, 1000);
+        }
+
+        // Initialize game
+        function initGame(mode = 'single') {
+            // Show/hide appropriate UI elements
+            if (mode === 'single') {
+                gameState.gameMode = 'single';
+                gameState.players = [];
+                document.getElementById('modeSelection').classList.remove('hidden');
+                document.getElementById('gameStats').classList.add('hidden');
+                document.getElementById('gameBoard').classList.add('hidden');
+                document.getElementById('playerSetup').classList.add('hidden');
+            } else {
+                gameState.gameMode = 'multi';
+                document.getElementById('modeSelection').classList.add('hidden');
+                document.getElementById('gameStats').classList.remove('hidden');
+                document.getElementById('gameBoard').classList.remove('hidden');
+                
+                // Setup multiplayer UI
+                updateCurrentPlayer();
+                updatePlayerScores();
+            }
+            
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            
+            const shuffledCards = shuffle(cardData);
+            shuffledCards.forEach(cardInfo => {
+                gameBoard.appendChild(createCard(cardInfo));
+            });
+            
+            // Reset game state
+            gameState.flippedCards = [];
+            gameState.matchedPairs = 0;
+            gameState.moves = 0;
+            gameState.startTime = null;
+            gameState.timerInterval = null;
+            gameState.gameStarted = false;
+            gameState.currentPlayerIndex = 0;
+            
+            // Reset player scores for multiplayer
+            if (gameState.gameMode === 'multi') {
+                gameState.players.forEach(player => player.score = 0);
+            }
+            
+            // Reset UI
+            document.getElementById('timer').textContent = '00:00';
+            document.getElementById('matches').textContent = '0/16';
+            document.getElementById('winModal').classList.add('hidden');
+        }
+        
+        function startSinglePlayer() {
+            gameState.gameMode = 'single';
+            document.getElementById('modeSelection').classList.add('hidden');
+            document.getElementById('gameBoard').classList.remove('hidden');
+        }
+        
+        function startMultiplayerGame() {
+            if (gameState.players.length >= 2) {
+                initGame('multi');
+            }
+        }
+
+        // Show hint
+        function showHint() {
+            const unmatched = document.querySelectorAll('.card:not(.matched)');
+            if (unmatched.length > 0) {
+                const randomCard = unmatched[Math.floor(Math.random() * unmatched.length)];
+                randomCard.classList.add('pulse');
+                setTimeout(() => randomCard.classList.remove('pulse'), 1000);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('singlePlayerBtn').addEventListener('click', startSinglePlayer);
+        document.getElementById('multiPlayerBtn').addEventListener('click', setupMultiplayer);
+        document.getElementById('addPlayerBtn').addEventListener('click', addPlayer);
+        document.getElementById('startGameBtn').addEventListener('click', startMultiplayerGame);
+        document.getElementById('restartBtn').addEventListener('click', () => initGame());
+        document.getElementById('playAgainBtn').addEventListener('click', () => initGame());
+        document.getElementById('hintBtn').addEventListener('click', showHint);
+        
+        // Enter key support for adding players
+        document.getElementById('playerNameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addPlayer();
+            }
+        });
+
+        // Initialize game on load
+        initGame();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'983eb0b6655efdb2',t:'MTc1ODY3OTI0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
